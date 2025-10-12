@@ -9,15 +9,46 @@ if sys.platform == "win32":
     sys.stderr.reconfigure(encoding='utf-8')
 
 # Находим ffmpeg
-script_dir = os.path.dirname(os.path.abspath(__file__))
-ffmpeg_path = os.path.join(script_dir, "ffmpeg.exe")
+def find_ffmpeg():
+    """
+    Сначала проверяем системную команду ffmpeg, затем ищем в директории скрипта
+    """
+    # Пытаемся использовать системный ffmpeg
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-version"],
+            capture_output=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            print("Using system ffmpeg command\n")
+            return "ffmpeg"
+    except (subprocess.SubprocessError, FileNotFoundError):
+        pass
 
-if not os.path.exists(ffmpeg_path):
-    print(f"ERROR: ffmpeg.exe not found at: {ffmpeg_path}")
-    print("Download ffmpeg and place ffmpeg.exe in the script folder")
+    # Если системный ffmpeg не найден, ищем в директории скрипта
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Проверяем ffmpeg.exe для Windows
+    ffmpeg_exe = os.path.join(script_dir, "ffmpeg.exe")
+    if os.path.exists(ffmpeg_exe):
+        print(f"Using local ffmpeg: {ffmpeg_exe}\n")
+        return ffmpeg_exe
+
+    # Проверяем ffmpeg без расширения для Linux/Mac
+    ffmpeg_bin = os.path.join(script_dir, "ffmpeg")
+    if os.path.exists(ffmpeg_bin):
+        print(f"Using local ffmpeg: {ffmpeg_bin}\n")
+        return ffmpeg_bin
+
+    # Если ничего не найдено
+    print("ERROR: ffmpeg not found!")
+    print("Please either:")
+    print("  1. Install ffmpeg system-wide (recommended)")
+    print("  2. Download ffmpeg and place it in the script folder")
     sys.exit(1)
 
-print(f"ffmpeg found: {ffmpeg_path}\n")
+ffmpeg_path = find_ffmpeg()
 
 def convert_m4a_to_ogg(input_folder, output_folder):
     """

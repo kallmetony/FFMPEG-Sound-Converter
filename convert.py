@@ -29,17 +29,29 @@ def find_ffmpeg():
     # Если системный ffmpeg не найден, ищем в директории скрипта
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # Проверяем ffmpeg.exe для Windows
-    ffmpeg_exe = os.path.join(script_dir, "ffmpeg.exe")
+    # Проверяем ffmpeg.exe для Windows в папке bin
+    ffmpeg_exe = os.path.join(script_dir, "bin", "ffmpeg.exe")
     if os.path.exists(ffmpeg_exe):
         print(f"Using local ffmpeg: {ffmpeg_exe}\n")
         return ffmpeg_exe
 
-    # Проверяем ffmpeg без расширения для Linux/Mac
-    ffmpeg_bin = os.path.join(script_dir, "ffmpeg")
+    # Проверяем ffmpeg без расширения для Linux/Mac в папке bin
+    ffmpeg_bin = os.path.join(script_dir, "bin", "ffmpeg")
     if os.path.exists(ffmpeg_bin):
         print(f"Using local ffmpeg: {ffmpeg_bin}\n")
         return ffmpeg_bin
+
+    # Проверяем ffmpeg.exe для Windows в корне (для обратной совместимости)
+    ffmpeg_exe_root = os.path.join(script_dir, "ffmpeg.exe")
+    if os.path.exists(ffmpeg_exe_root):
+        print(f"Using local ffmpeg: {ffmpeg_exe_root}\n")
+        return ffmpeg_exe_root
+
+    # Проверяем ffmpeg без расширения для Linux/Mac в корне
+    ffmpeg_bin_root = os.path.join(script_dir, "ffmpeg")
+    if os.path.exists(ffmpeg_bin_root):
+        print(f"Using local ffmpeg: {ffmpeg_bin_root}\n")
+        return ffmpeg_bin_root
 
     # Если ничего не найдено
     print("ERROR: ffmpeg not found!")
@@ -81,11 +93,13 @@ def convert_m4a_to_ogg(input_folder, output_folder):
 
             # Команда ffmpeg для конвертации в формат совместимый с Minecraft
             # Используем моно, 44.1kHz, качество 5 (средне-высокое)
+            # + обрезка тишины в начале и конце
             cmd = [
                 ffmpeg_path,
                 "-i", str(audio_file.absolute()),
+                "-af", "silenceremove=start_periods=1:start_silence=0.1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_silence=0.1:start_threshold=-50dB,areverse",
                 "-c:a", "libvorbis",      # Кодек Vorbis
-                "-ac", "1",               # Моно 
+                "-ac", "1",               # Моно
                 "-ar", "44100",           # Частота дискретизации 44.1kHz
                 "-q:a", "5",              # Качество 5 (0-10)
                 "-y",                     # Перезаписывать без подтверждения
